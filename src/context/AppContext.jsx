@@ -1,40 +1,24 @@
-import { createContext, useContext, useReducer, useEffect } from 'react';
-import { initialCategorias, initialReceitas, initialDespesas, initialMetas, initialReserva, initialConfig, DATA_VERSION } from '../data/initialData';
+import { createContext, useContext, useReducer, useEffect, useRef, useState } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
+import { initialCategorias, initialReceitas, initialDespesas, initialMetas, initialReserva, initialConfig } from '../data/initialData';
 import { generateId } from '../utils/formatters';
 
 const AppContext = createContext(null);
 
-const KEYS = ['receitas', 'despesas', 'categorias', 'metas', 'reserva', 'config', 'notificacoes'];
-
-// Limpa dados antigos se a versão mudou
-if (localStorage.getItem('fintech_version') !== DATA_VERSION) {
-  KEYS.forEach(k => localStorage.removeItem(`fintech_${k}`));
-  localStorage.setItem('fintech_version', DATA_VERSION);
-}
-
-const load = (key, fallback) => {
-  try {
-    const stored = localStorage.getItem(`fintech_${key}`);
-    return stored ? JSON.parse(stored) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-const save = (key, value) => {
-  try {
-    localStorage.setItem(`fintech_${key}`, JSON.stringify(value));
-  } catch {}
+const defaultData = {
+  receitas: initialReceitas,
+  despesas: initialDespesas,
+  categorias: initialCategorias,
+  metas: initialMetas,
+  reserva: initialReserva,
+  config: initialConfig,
+  notificacoes: [],
 };
 
 const initialState = {
-  receitas: load('receitas', initialReceitas),
-  despesas: load('despesas', initialDespesas),
-  categorias: load('categorias', initialCategorias),
-  metas: load('metas', initialMetas),
-  reserva: load('reserva', initialReserva),
-  config: load('config', initialConfig),
-  notificacoes: load('notificacoes', []),
+  ...defaultData,
   activePage: 'dashboard',
   sidebarOpen: true,
   searchQuery: '',
@@ -42,6 +26,11 @@ const initialState = {
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'LOAD_DATA':
+      return { ...state, ...action.payload };
+    case 'RESET_DATA':
+      return { ...initialState };
+
     case 'SET_PAGE':
       return { ...state, activePage: action.payload };
     case 'TOGGLE_SIDEBAR':
@@ -108,14 +97,37 @@ function reducer(state, action) {
 
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [dbLoading, setDbLoading] = useState(true);
+  const userIdRef = useRef(null);
+  const dataLoadedRef = useRef(false);
 
-  useEffect(() => { save('receitas', state.receitas); }, [state.receitas]);
-  useEffect(() => { save('despesas', state.despesas); }, [state.despesas]);
-  useEffect(() => { save('categorias', state.categorias); }, [state.categorias]);
-  useEffect(() => { save('metas', state.metas); }, [state.metas]);
-  useEffect(() => { save('reserva', state.reserva); }, [state.reserva]);
-  useEffect(() => { save('config', state.config); }, [state.config]);
-  useEffect(() => { save('notificacoes', state.notificacoes); }, [state.notificacoes]);
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        userIdRef.current = user.uid;
+        const docRef = doc(db, 'users', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          dispatch({ type: 'LOAD_DATA', payload: docSnap.data() });
+        } else {
+          await setDoc(docRef, defaultData);
+        }
+        dataLoadedRef.current = true;
+      } else {
+        userIdRef.current = null;
+        dataLoadedRef.current = false;
+        dispatch({ type: 'RESET_DATA' });
+      }
+      setDbLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (!dataLoadedRef.current || !userIdRef.current) return;
+    const { activePage, sidebarOpen, searchQuery, ...data } = state;
+    setDoc(doc(db, 'users', userIdRef.current), data, { merge: true });
+  }, [state.receitas, state.despesas, state.categorias, state.metas, state.reserva, state.config, state.notificacoes]);
 
   const getTotalReceitas = (filtro = 'mes') => {
     const now = new Date();
@@ -160,7 +172,7 @@ export function AppProvider({ children }) {
   const getCategoriaById = (id) => state.categorias.find(c => c.id === id);
 
   return (
-    <AppContext.Provider value={{ state, dispatch, getTotalReceitas, getTotalDespesas, getSaldoAtual, getPendentes, getCategoriaById }}>
+    <AppContext.Provider value={{ state, dispatch, dbLoading, getTotalReceitas, getTotalDespesas, getSaldoAtual, getPendentes, getCategoriaById }}>
       {children}
     </AppContext.Provider>
   );

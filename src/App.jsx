@@ -26,9 +26,9 @@ const PAGES = {
 
 function AppContent() {
   const { user, carregando } = useAuth();
-  const { state } = useApp();
+  const { state, dbLoading } = useApp();
 
-  if (carregando) {
+  if (carregando || (user && dbLoading)) {
     return (
       <div style={{
         height: '100vh', display: 'flex', flexDirection: 'column',
