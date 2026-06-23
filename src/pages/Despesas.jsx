@@ -8,7 +8,8 @@ import MesNavegador from '../components/ui/MesNavegador';
 
 const EMPTY = {
   descricao: '', categoria: '', fornecedor: '', vencimento: '', valor: '',
-  status: 'Não Pago', recorrente: false, recorrenciaFreq: 'mensal', observacoes: ''
+  status: 'Não Pago', recorrente: false, recorrenciaFreq: 'mensal',
+  reajusteFixo: '', reajustePercentual: '', observacoes: ''
 };
 
 export default function Despesas() {
@@ -77,7 +78,12 @@ export default function Despesas() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const data = { ...form, valor: parseFloat(form.valor) || 0 };
+    const data = {
+      ...form,
+      valor: parseFloat(form.valor) || 0,
+      reajusteFixo: parseFloat(form.reajusteFixo) || 0,
+      reajustePercentual: parseFloat(form.reajustePercentual) || 0,
+    };
     if (editId) {
       dispatch({ type: 'UPDATE_DESPESA', payload: { ...data, id: editId } });
     } else {
@@ -226,6 +232,11 @@ export default function Despesas() {
                       <div style={{ display: 'flex', gap: 4, marginTop: 3, flexWrap: 'wrap' }}>
                         {d.recorrente && <span className="badge badge-muted" style={{ fontSize: 10 }}>Recorrente</span>}
                         {isProjetado && <span className="badge badge-info" style={{ fontSize: 10 }}>Projeção</span>}
+                        {(d.reajusteFixo > 0 || d.reajustePercentual > 0) && (
+                          <span className="badge badge-warning" style={{ fontSize: 10 }} title={`Reajuste mensal: ${d.reajusteFixo > 0 ? `+R$${d.reajusteFixo}` : ''}${d.reajusteFixo > 0 && d.reajustePercentual > 0 ? ' + ' : ''}${d.reajustePercentual > 0 ? `+${d.reajustePercentual}%` : ''}`}>
+                            Reajuste
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td style={{ color: 'var(--text-secondary)' }}>{d.fornecedor || '-'}</td>
@@ -343,6 +354,26 @@ export default function Despesas() {
                     </div>
                   )}
                 </div>
+                {form.recorrente && (
+                  <div className="form-row form-row-2">
+                    <div className="form-group">
+                      <label className="form-label">Reajuste fixo por mês (R$)</label>
+                      <input type="number" step="0.01" min="0" className="form-control" placeholder="Ex: 50,00"
+                        value={form.reajusteFixo} onChange={e => setForm({ ...form, reajusteFixo: e.target.value })} />
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                        Valor somado ao total a cada mês
+                      </span>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Reajuste percentual por mês (%)</label>
+                      <input type="number" step="0.01" min="0" max="100" className="form-control" placeholder="Ex: 2,5"
+                        value={form.reajustePercentual} onChange={e => setForm({ ...form, reajustePercentual: e.target.value })} />
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                        Percentual aplicado sobre o valor mês a mês
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <div className="form-group">
                   <label className="form-label">Observações</label>
                   <textarea className="form-control" rows={2} placeholder="Observações..."

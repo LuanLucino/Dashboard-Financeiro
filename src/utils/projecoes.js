@@ -1,4 +1,4 @@
-import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, addWeeks, addMonths, addYears } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, addWeeks, differenceInMonths } from 'date-fns';
 
 const proximaDataRecorrente = (dataBase, freq, mesAlvo) => {
   const base = parseISO(dataBase);
@@ -77,10 +77,16 @@ export const gerarProjecoesDespesas = (despesas, mesAlvo) => {
       const dataProjetada = proximaDataRecorrente(d.vencimento, d.recorrenciaFreq, mesAlvo);
       if (!dataProjetada) return [];
 
+      const meses = differenceInMonths(startOfMonth(mesAlvo), startOfMonth(parseISO(d.vencimento)));
+      const fixo = d.reajusteFixo || 0;
+      const perc = d.reajustePercentual || 0;
+      const valorReajustado = d.valor * Math.pow(1 + perc / 100, meses) + fixo * meses;
+
       return [{
         ...d,
         id: `proj_${d.id}_${format(mesAlvo, 'yyyy-MM')}`,
         vencimento: dataProjetada,
+        valor: Math.round(valorReajustado * 100) / 100,
         status: 'Não Pago',
         projetado: true,
       }];
