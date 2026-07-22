@@ -87,10 +87,12 @@ export default function Receitas() {
     setConfirmDelete(null);
   };
 
-  const confirmarProjecao = (r) => {
-    const { id, projetado, ...resto } = r;
-    dispatch({ type: 'ADD_RECEITA', payload: { ...resto, status: 'Recebido' } });
+  const openEditProjecao = (r) => {
+    const original = state.receitas.find(x => x.id === r.originalId);
+    if (original) { setForm({ ...original }); setEditId(original.id); setModal(true); }
   };
+
+  const deleteProjecao = (r) => setConfirmDelete(r.originalId);
 
   const qtdProjecoes = receitas.filter(r => r.projetado).length;
 
@@ -237,14 +239,11 @@ export default function Receitas() {
                               style={{ color: 'var(--danger)' }}><Trash2 size={13} /></button>
                           </>
                         ) : (
-                          <button
-                            className="btn btn-sm"
-                            onClick={() => confirmarProjecao(r)}
-                            style={{ fontSize: 11, padding: '3px 8px', background: 'var(--success-bg)', color: 'var(--success)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 6, cursor: 'pointer' }}
-                            title="Confirmar como recebido"
-                          >
-                            ✓ Confirmar
-                          </button>
+                          <>
+                            <button className="btn-icon btn-sm" onClick={() => openEditProjecao(r)} title="Editar recorrência"><Edit2 size={13} /></button>
+                            <button className="btn-icon btn-sm" onClick={() => deleteProjecao(r)} title="Excluir recorrência"
+                              style={{ color: 'var(--danger)' }}><Trash2 size={13} /></button>
+                          </>
                         )}
                       </div>
                     </td>

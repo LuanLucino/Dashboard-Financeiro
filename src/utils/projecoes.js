@@ -59,6 +59,7 @@ export const gerarProjecoesReceitas = (receitas, mesAlvo) => {
       return [{
         ...r,
         id: `proj_${r.id}_${format(mesAlvo, 'yyyy-MM')}`,
+        originalId: r.id,
         data: dataProjetada,
         status: 'Pendente',
         projetado: true,
