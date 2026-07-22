@@ -42,12 +42,16 @@ export const gerarProjecoesReceitas = (receitas, mesAlvo) => {
   return receitas
     .filter(r => r.recorrente && r.recorrenciaFreq)
     .flatMap(r => {
-      // Já existe lançamento real neste mês para esta receita?
       const jaExisteReal = isWithinInterval(parseISO(r.data), { start, end });
       if (jaExisteReal) return [];
 
-      // A origem da recorrência deve ser anterior ao mês alvo
       if (parseISO(r.data) >= start) return [];
+
+      const jaConfirmado = receitas.some(x =>
+        !x.projetado && x.originalId === r.id &&
+        isWithinInterval(parseISO(x.data), { start, end })
+      );
+      if (jaConfirmado) return [];
 
       const dataProjetada = proximaDataRecorrente(r.data, r.recorrenciaFreq, mesAlvo);
       if (!dataProjetada) return [];
@@ -73,6 +77,12 @@ export const gerarProjecoesDespesas = (despesas, mesAlvo) => {
       if (jaExisteReal) return [];
 
       if (parseISO(d.vencimento) >= start) return [];
+
+      const jaConfirmado = despesas.some(x =>
+        !x.projetado && x.originalId === d.id &&
+        isWithinInterval(parseISO(x.vencimento), { start, end })
+      );
+      if (jaConfirmado) return [];
 
       const dataProjetada = proximaDataRecorrente(d.vencimento, d.recorrenciaFreq, mesAlvo);
       if (!dataProjetada) return [];

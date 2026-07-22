@@ -100,7 +100,7 @@ export default function Despesas() {
   const togglePago = (id) => dispatch({ type: 'TOGGLE_PAGO', payload: id });
 
   const confirmarProjecao = (d) => {
-    const { id, projetado, originalId, ...resto } = d;
+    const { id, projetado, ...resto } = d;
     dispatch({ type: 'ADD_DESPESA', payload: { ...resto, status: 'Pago' } });
   };
 
