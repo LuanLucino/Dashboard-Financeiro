@@ -129,9 +129,31 @@ export function AppProvider({ children }) {
     setDoc(doc(db, 'users', userIdRef.current), data, { merge: true });
   }, [state.receitas, state.despesas, state.categorias, state.metas, state.reserva, state.config, state.notificacoes]);
 
+  const dedupReceitas = (lista) => {
+    const seen = new Set();
+    return lista.filter(r => {
+      if (!r.originalId) return true;
+      const key = `${r.originalId}_${r.data?.slice(0, 7)}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
+  const dedupDespesas = (lista) => {
+    const seen = new Set();
+    return lista.filter(d => {
+      if (!d.originalId) return true;
+      const key = `${d.originalId}_${d.vencimento?.slice(0, 7)}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
   const getTotalReceitas = (filtro = 'mes') => {
     const now = new Date();
-    return state.receitas
+    return dedupReceitas(state.receitas)
       .filter(r => {
         if (filtro === 'mes') {
           const d = new Date(r.data);
@@ -145,7 +167,7 @@ export function AppProvider({ children }) {
 
   const getTotalDespesas = (filtro = 'mes') => {
     const now = new Date();
-    return state.despesas
+    return dedupDespesas(state.despesas)
       .filter(d => {
         if (filtro === 'mes') {
           const date = new Date(d.vencimento);
@@ -158,15 +180,15 @@ export function AppProvider({ children }) {
   };
 
   const getSaldoAtual = () => {
-    const receitas = state.receitas.filter(r => r.status === 'Recebido').reduce((s, r) => s + r.valor, 0);
-    const despesas = state.despesas.filter(d => d.status === 'Pago').reduce((s, d) => s + d.valor, 0);
+    const receitas = dedupReceitas(state.receitas).filter(r => r.status === 'Recebido').reduce((s, r) => s + r.valor, 0);
+    const despesas = dedupDespesas(state.despesas).filter(d => d.status === 'Pago').reduce((s, d) => s + d.valor, 0);
     return (state.config.saldoInicial || 0) + receitas - despesas;
   };
 
   const getPendentes = () => ({
-    aReceber: state.receitas.filter(r => r.status === 'Pendente').reduce((s, r) => s + r.valor, 0),
-    aPagar: state.despesas.filter(d => d.status === 'Não Pago').reduce((s, d) => s + d.valor, 0),
-    vencidas: state.despesas.filter(d => d.status === 'Vencido').reduce((s, d) => s + d.valor, 0),
+    aReceber: dedupReceitas(state.receitas).filter(r => r.status === 'Pendente').reduce((s, r) => s + r.valor, 0),
+    aPagar: dedupDespesas(state.despesas).filter(d => d.status === 'Não Pago').reduce((s, d) => s + d.valor, 0),
+    vencidas: dedupDespesas(state.despesas).filter(d => d.status === 'Vencido').reduce((s, d) => s + d.valor, 0),
   });
 
   const getCategoriaById = (id) => state.categorias.find(c => c.id === id);
