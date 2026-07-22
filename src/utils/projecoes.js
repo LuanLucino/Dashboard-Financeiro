@@ -85,6 +85,7 @@ export const gerarProjecoesDespesas = (despesas, mesAlvo) => {
       return [{
         ...d,
         id: `proj_${d.id}_${format(mesAlvo, 'yyyy-MM')}`,
+        originalId: d.id,
         vencimento: dataProjetada,
         valor: Math.round(valorReajustado * 100) / 100,
         status: 'Não Pago',

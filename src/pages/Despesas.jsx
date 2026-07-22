@@ -100,9 +100,16 @@ export default function Despesas() {
   const togglePago = (id) => dispatch({ type: 'TOGGLE_PAGO', payload: id });
 
   const confirmarProjecao = (d) => {
-    const { id, projetado, ...resto } = d;
+    const { id, projetado, originalId, ...resto } = d;
     dispatch({ type: 'ADD_DESPESA', payload: { ...resto, status: 'Pago' } });
   };
+
+  const openEditProjecao = (d) => {
+    const original = state.despesas.find(dep => dep.id === d.originalId);
+    if (original) { setForm({ ...original }); setEditId(original.id); setModal(true); }
+  };
+
+  const deleteProjecao = (d) => setConfirmDelete(d.originalId);
 
   const qtdProjecoes = despesas.filter(d => d.projetado).length;
 
@@ -287,7 +294,11 @@ export default function Despesas() {
                               style={{ color: 'var(--danger)' }}><Trash2 size={13} /></button>
                           </>
                         ) : (
-                          <span style={{ fontSize: 11, color: 'var(--text-muted)', padding: '0 4px' }}>projetado</span>
+                          <>
+                            <button className="btn-icon btn-sm" onClick={() => openEditProjecao(d)} title="Editar recorrência"><Edit2 size={13} /></button>
+                            <button className="btn-icon btn-sm" onClick={() => deleteProjecao(d)} title="Excluir recorrência"
+                              style={{ color: 'var(--danger)' }}><Trash2 size={13} /></button>
+                          </>
                         )}
                       </div>
                     </td>
