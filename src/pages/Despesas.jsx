@@ -3,7 +3,7 @@ import { Plus, Search, Edit2, Trash2, TrendingDown, AlertCircle, RefreshCw } fro
 import { useApp } from '../context/AppContext';
 import { formatCurrency, formatDate, getStatusColor } from '../utils/formatters';
 import { gerarProjecoesDespesas } from '../utils/projecoes';
-import { isPast, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { isPast, parseISO, startOfMonth, endOfMonth, isWithinInterval, addMonths } from 'date-fns';
 import MesNavegador from '../components/ui/MesNavegador';
 
 const EMPTY = {
@@ -112,20 +112,11 @@ export default function Despesas() {
 
   const deleteProjecao = (d) => setConfirmDelete(d.originalId);
 
-  const limparDuplicatas = () => {
-    const vistas = new Set();
-    const idsParaRemover = [];
-    [...state.despesas]
-      .sort((a, b) => a.id.localeCompare(b.id))
-      .forEach(d => {
-        if (!d.originalId) return;
-        const chave = `${d.originalId}_${d.vencimento.slice(0, 7)}`;
-        if (vistas.has(chave)) {
-          idsParaRemover.push(d.id);
-        } else {
-          vistas.add(chave);
-        }
-      });
+  const limparMesesFuturos = () => {
+    const corte = startOfMonth(addMonths(mesAtual, 1));
+    const idsParaRemover = state.despesas
+      .filter(d => parseISO(d.vencimento) >= corte)
+      .map(d => d.id);
     idsParaRemover.forEach(id => dispatch({ type: 'DELETE_DESPESA', payload: id }));
     setConfirmLimpeza(false);
   };
@@ -192,15 +183,13 @@ export default function Despesas() {
               <RefreshCw size={13} style={{ color: mostrarProjecoes ? 'var(--info)' : 'var(--text-muted)' }} />
               {mostrarProjecoes ? `Projeções ativas (${qtdProjecoes})` : 'Mostrar projeções'}
             </button>
-            {state.despesas.some(d => d.originalId) && (
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => setConfirmLimpeza(true)}
-                style={{ gap: 6, color: 'var(--danger)', borderColor: 'rgba(239,68,68,0.3)' }}
-              >
-                <Trash2 size={13} /> Limpar duplicatas
-              </button>
-            )}
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setConfirmLimpeza(true)}
+              style={{ gap: 6, color: 'var(--danger)', borderColor: 'rgba(239,68,68,0.3)' }}
+            >
+              <Trash2 size={13} /> Limpar meses futuros
+            </button>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{despesas.length} registro(s)</span>
           </div>
         </div>
@@ -458,18 +447,23 @@ export default function Despesas() {
       {confirmLimpeza && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setConfirmLimpeza(false)}>
           <div className="modal" style={{ maxWidth: 420 }}>
-            <div className="modal-header"><h3>Limpar duplicatas</h3></div>
+            <div className="modal-header"><h3>Limpar meses futuros</h3></div>
             <div className="modal-body">
               <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-                Isso vai remover entradas duplicadas geradas pelo bug de projeções — mantendo apenas uma por recorrência por mês.
+                Isso vai apagar <strong>todas</strong> as despesas a partir de <strong style={{ color: 'var(--danger)' }}>
+                  {addMonths(mesAtual, 1).toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
+                </strong>.
+              </p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginTop: 8 }}>
+                Os itens recorrentes do mês atual serão projetados automaticamente nos meses seguintes.
               </p>
               <p style={{ color: 'var(--warning)', fontSize: 13, marginTop: 10 }}>
-                Esta ação não pode ser desfeita. Entradas pagas manualmente não serão afetadas.
+                Esta ação não pode ser desfeita.
               </p>
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setConfirmLimpeza(false)}>Cancelar</button>
-              <button className="btn btn-danger" onClick={limparDuplicatas}>Limpar agora</button>
+              <button className="btn btn-danger" onClick={limparMesesFuturos}>Apagar e regenerar</button>
             </div>
           </div>
         </div>
