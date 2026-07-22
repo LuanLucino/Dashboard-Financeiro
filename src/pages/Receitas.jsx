@@ -87,6 +87,11 @@ export default function Receitas() {
     setConfirmDelete(null);
   };
 
+  const confirmarProjecao = (r) => {
+    const { id, projetado, ...resto } = r;
+    dispatch({ type: 'ADD_RECEITA', payload: { ...resto, status: 'Recebido' } });
+  };
+
   const qtdProjecoes = receitas.filter(r => r.projetado).length;
 
   return (
@@ -232,7 +237,14 @@ export default function Receitas() {
                               style={{ color: 'var(--danger)' }}><Trash2 size={13} /></button>
                           </>
                         ) : (
-                          <span style={{ fontSize: 11, color: 'var(--text-muted)', padding: '0 4px' }}>projetado</span>
+                          <button
+                            className="btn btn-sm"
+                            onClick={() => confirmarProjecao(r)}
+                            style={{ fontSize: 11, padding: '3px 8px', background: 'var(--success-bg)', color: 'var(--success)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 6, cursor: 'pointer' }}
+                            title="Confirmar como recebido"
+                          >
+                            ✓ Confirmar
+                          </button>
                         )}
                       </div>
                     </td>

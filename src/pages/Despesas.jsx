@@ -99,6 +99,11 @@ export default function Despesas() {
 
   const togglePago = (id) => dispatch({ type: 'TOGGLE_PAGO', payload: id });
 
+  const confirmarProjecao = (d) => {
+    const { id, projetado, ...resto } = d;
+    dispatch({ type: 'ADD_DESPESA', payload: { ...resto, status: 'Pago' } });
+  };
+
   const qtdProjecoes = despesas.filter(d => d.projetado).length;
 
   return (
@@ -224,7 +229,14 @@ export default function Despesas() {
                           {isPago ? '✓' : '○'}
                         </button>
                       ) : (
-                        <span style={{ fontSize: 16, color: 'var(--info)', padding: '0 8px' }}>~</span>
+                        <button
+                          className="btn-icon btn-sm"
+                          onClick={() => confirmarProjecao(d)}
+                          style={{ background: 'var(--bg-elevated)', color: 'var(--info)', borderColor: 'rgba(6,182,212,0.3)' }}
+                          title="Confirmar como pago"
+                        >
+                          ✓
+                        </button>
                       )}
                     </td>
                     <td>
