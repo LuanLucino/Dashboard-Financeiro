@@ -21,6 +21,7 @@ export default function Despesas() {
   const [filtroStatus, setFiltroStatus] = useState('');
   const [filtroCat, setFiltroCat] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [confirmLimpeza, setConfirmLimpeza] = useState(false);
   const [mesAtual, setMesAtual] = useState(new Date());
   const [mostrarProjecoes, setMostrarProjecoes] = useState(true);
 
@@ -111,6 +112,24 @@ export default function Despesas() {
 
   const deleteProjecao = (d) => setConfirmDelete(d.originalId);
 
+  const limparDuplicatas = () => {
+    const vistas = new Set();
+    const idsParaRemover = [];
+    [...state.despesas]
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .forEach(d => {
+        if (!d.originalId) return;
+        const chave = `${d.originalId}_${d.vencimento.slice(0, 7)}`;
+        if (vistas.has(chave)) {
+          idsParaRemover.push(d.id);
+        } else {
+          vistas.add(chave);
+        }
+      });
+    idsParaRemover.forEach(id => dispatch({ type: 'DELETE_DESPESA', payload: id }));
+    setConfirmLimpeza(false);
+  };
+
   const qtdProjecoes = despesas.filter(d => d.projetado).length;
 
   return (
@@ -173,6 +192,15 @@ export default function Despesas() {
               <RefreshCw size={13} style={{ color: mostrarProjecoes ? 'var(--info)' : 'var(--text-muted)' }} />
               {mostrarProjecoes ? `Projeções ativas (${qtdProjecoes})` : 'Mostrar projeções'}
             </button>
+            {state.despesas.some(d => d.originalId) && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setConfirmLimpeza(true)}
+                style={{ gap: 6, color: 'var(--danger)', borderColor: 'rgba(239,68,68,0.3)' }}
+              >
+                <Trash2 size={13} /> Limpar duplicatas
+              </button>
+            )}
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{despesas.length} registro(s)</span>
           </div>
         </div>
@@ -422,6 +450,26 @@ export default function Despesas() {
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setConfirmDelete(null)}>Cancelar</button>
               <button className="btn btn-danger" onClick={() => handleDelete(confirmDelete)}>Excluir</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmLimpeza && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setConfirmLimpeza(false)}>
+          <div className="modal" style={{ maxWidth: 420 }}>
+            <div className="modal-header"><h3>Limpar duplicatas</h3></div>
+            <div className="modal-body">
+              <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
+                Isso vai remover entradas duplicadas geradas pelo bug de projeções — mantendo apenas uma por recorrência por mês.
+              </p>
+              <p style={{ color: 'var(--warning)', fontSize: 13, marginTop: 10 }}>
+                Esta ação não pode ser desfeita. Entradas pagas manualmente não serão afetadas.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setConfirmLimpeza(false)}>Cancelar</button>
+              <button className="btn btn-danger" onClick={limparDuplicatas}>Limpar agora</button>
             </div>
           </div>
         </div>
